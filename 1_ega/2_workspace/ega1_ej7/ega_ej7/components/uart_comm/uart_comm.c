@@ -36,7 +36,7 @@ static void mostrar_comandos(void)
     );
 }
 
-static void mostrar_config_actual(void)
+void mostrar_config_actual(void)
 {
     config_t config_leida; // Variable para almacenar la configuración leída de la cola
     char a[180];
@@ -92,7 +92,7 @@ static void procesar_comando(char *cmd)
         uart_write_bytes(UART_PORT, cmd, strlen(cmd));
         uart_print("\r\n");
         vTaskDelay(pdMS_TO_TICKS(50));
-        mostrar_config_actual();
+        // mostrar_config_actual();
     }
     else
     {
