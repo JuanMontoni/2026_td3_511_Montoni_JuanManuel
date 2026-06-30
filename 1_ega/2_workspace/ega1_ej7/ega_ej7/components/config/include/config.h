@@ -20,16 +20,16 @@
 
 typedef uint8_t intro_t; // tipo de dato para comandos que se mandan por la cola intro
 
-typedef struct
+typedef struct 
 {
     uint8_t estado;
     uint8_t escala_vertical;
     uint8_t base_tiempo;
     uint8_t flanco;
     uint16_t nivel_trigger;
-} config_t;
-
-extern QueueHandle_t intro;  
+} config_t; 
+ 
+extern QueueHandle_t intro; 
 extern QueueHandle_t config;
 
 void config_init(void);

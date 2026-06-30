@@ -10,11 +10,6 @@
 
 #define SCAN_PERIOD_MS 20U
 
-/*
- * Cambiá estos pines según tu conexión real.
- * Filas: salidas
- * Columnas: entradas con pull-up
- */
 static const gpio_num_t rowPins[4] = {
     GPIO_NUM_6,
     GPIO_NUM_7,
@@ -38,10 +33,7 @@ static const char keymap[4][4] = {
 
 static void keypad_gpio_init(void)
 {
-    /*
-     * Filas como salidas.
-     * Se dejan en alto.
-     */
+
     for (int r = 0; r < 4; r++)
     {
         gpio_config_t row_cfg = {
@@ -56,10 +48,6 @@ static void keypad_gpio_init(void)
         gpio_set_level(rowPins[r], 1);
     }
 
-    /*
-     * Columnas como entradas con pull-up.
-     * Cuando se presiona una tecla, la columna lee 0.
-     */
     for (int c = 0; c < 4; c++)
     {
         gpio_config_t col_cfg = {
@@ -88,16 +76,13 @@ static void row_active_low(int r)
     gpio_set_level(rowPins[r], 0);
 }
 
-static char keypad_scan_once(void)
+static char keypad_scan_once(void) // Escanea el teclado una vez y devuelve la tecla presionada, o 0 si no hay ninguna
 {
     for (int r = 0; r < 4; r++)
     {
         row_active_low(r);
 
-        /*
-         * Pequeña espera para estabilizar la lectura.
-         */
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(10)); // Espera a que el nivel de los pines se estabilice
 
         for (int c = 0; c < 4; c++)
         {
@@ -113,7 +98,7 @@ static char keypad_scan_once(void)
     return 0;
 }
 
-static char keypad_get_key_oneshot(void)
+static char keypad_get_key_oneshot(void) // Devuelve la tecla presionada, o 0 si no hay ninguna. Espera a que se suelte la tecla antes de devolver el valor
 {
     char k = keypad_scan_once();
 
@@ -122,10 +107,6 @@ static char keypad_get_key_oneshot(void)
         return 0;
     }
 
-    /*
-     * Espera a que se suelte la tecla.
-     * Esto evita repetir la misma tecla muchas veces.
-     */
     while (keypad_scan_once() != 0)
     {
         vTaskDelay(pdMS_TO_TICKS(10));

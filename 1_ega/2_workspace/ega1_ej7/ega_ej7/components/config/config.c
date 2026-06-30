@@ -2,6 +2,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
+#include "uart_comm.h"
+#include "flash.h"
 
 QueueHandle_t intro = NULL;
 QueueHandle_t config = NULL;
@@ -22,7 +24,7 @@ void config_init(void)
 
 void task_config(void *param)
 {
-    intro_t comando_recibido;
+    intro_t comando_recibido; 
 
     config_t config_actual = {
         .estado = med_stateoff_config,
@@ -32,7 +34,9 @@ void task_config(void *param)
         .nivel_trigger = 1000
     };
 
-    xQueueOverwrite(config, &config_actual);
+    flash_load_config(&config_actual); // Cargar la configuración desde la memoria flash
+    config_actual.estado = med_stateoff_config; // Arranco con en off
+    xQueueOverwrite(config, &config_actual); 
 
     while (1)
     {
@@ -90,7 +94,7 @@ void task_config(void *param)
                     break;
 
                 case 7:
-                    // Mostrar configuración actual
+                    mostrar_config_actual();
                     break;
 
                 default:

@@ -7,6 +7,9 @@
 #include "driver/gpio.h"
 #include "config.h"
 #include "uart_comm.h"
+#include "teclado.h"
+#include "flash.h"
+#include "lcd.h"
 
 
 #define SW_RUNOFF 0
@@ -65,8 +68,13 @@ void task_runoff(void *param)
 
 void app_main(void)
 {
+
+    flash_init();
     config_init();
     uart_comm_init();
+    teclado_init();
+    lcd_init_task();
+    flash_task_start();
 
     sem_runoff = xSemaphoreCreateBinary();
 

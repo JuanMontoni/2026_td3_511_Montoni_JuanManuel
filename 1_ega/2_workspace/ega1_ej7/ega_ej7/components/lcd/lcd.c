@@ -1,43 +1,26 @@
 #include <stdint.h>
-
 #include "lcd.h"
-
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-
 #include "driver/i2c_master.h"
 #include "driver/gpio.h"
 #include <stdio.h>
 #include <string.h>
 #include "config.h"
-/*
- * Pines I2C
- */
+
 #define LCD_I2C_SDA        GPIO_NUM_21
 #define LCD_I2C_SCL        GPIO_NUM_20
 #define LCD_I2C_PORT       I2C_NUM_0
 #define LCD_I2C_FREQ_HZ    100000
 
-/*
- * Dirección correcta de tu módulo LCD I2C
- */
 #define LCD_I2C_ADDR       0x3F
 
-/*
- * Bits del PCF8574
- */
-#define LCD_BACKLIGHT      0x08
-#define LCD_ENABLE_BIT     0x04
+#define LCD_BACKLIGHT      0x08 // Backlight control bit
+#define LCD_ENABLE_BIT     0x04 // Enable bit
 
-/*
- * Modo comando / dato
- */
 #define LCD_COMMAND        0x00
 #define LCD_CHARACTER      0x01
 
-/*
- * Comandos LCD HD44780
- */
 #define LCD_CLEARDISPLAY   0x01
 #define LCD_ENTRYMODESET   0x04
 #define LCD_DISPLAYCONTROL 0x08
@@ -51,10 +34,8 @@
 static i2c_master_bus_handle_t i2c_bus_handle;
 static i2c_master_dev_handle_t lcd_dev_handle;
 
-/*
- * Escribe un byte al expansor I2C del LCD.
- */
-static void lcd_i2c_write(uint8_t data)
+
+static void lcd_i2c_write(uint8_t data) // Escribe un byte al LCD a través de I2C
 {
     i2c_master_transmit(
         lcd_dev_handle,
@@ -64,10 +45,8 @@ static void lcd_i2c_write(uint8_t data)
     );
 }
 
-/*
- * Pulso de enable.
- */
-static void lcd_pulse_enable(uint8_t data)
+
+static void lcd_pulse_enable(uint8_t data) // Genera un pulso de habilitación para el LCD
 {
     lcd_i2c_write(data | LCD_ENABLE_BIT);
     vTaskDelay(pdMS_TO_TICKS(5));
@@ -76,21 +55,17 @@ static void lcd_pulse_enable(uint8_t data)
     vTaskDelay(pdMS_TO_TICKS(5));
 }
 
-/*
- * Escribe un nibble al LCD.
- */
-static void lcd_write_nibble(uint8_t nibble, uint8_t mode)
-{
+
+static void lcd_write_nibble(uint8_t nibble, uint8_t mode) // Escribe un nibble (4 bits) al LCD en modo 4 bits
+{ 
     uint8_t data = (nibble << 4) | LCD_BACKLIGHT | mode;
 
     lcd_i2c_write(data);
     lcd_pulse_enable(data);
 }
 
-/*
- * Escribe un byte completo en modo 4 bits.
- */
-static void lcd_send_byte(uint8_t value, uint8_t mode)
+
+static void lcd_send_byte(uint8_t value, uint8_t mode) // Envía un byte al LCD, dividiéndolo en dos nibbles y enviándolos en modo 4 bits
 {
     uint8_t high = (value >> 4) & 0x0F;
     uint8_t low  = value & 0x0F;
@@ -101,7 +76,7 @@ static void lcd_send_byte(uint8_t value, uint8_t mode)
     vTaskDelay(pdMS_TO_TICKS(5));
 }
 
-static void lcd_clear(void)
+static void lcd_clear(void) 
 {
     lcd_send_byte(LCD_CLEARDISPLAY, LCD_COMMAND);
     vTaskDelay(pdMS_TO_TICKS(20));
@@ -119,7 +94,7 @@ static void lcd_set_cursor(uint8_t row, uint8_t col)
     vTaskDelay(pdMS_TO_TICKS(10));
 }
 
-static void lcd_print_16(const char *str)
+static void lcd_print_16(const char *str) // Imprime una cadena de hasta 16 caracteres en el LCD, rellenando con espacios si es más corta
 {
     uint8_t i = 0;
 
@@ -136,16 +111,14 @@ static void lcd_print_16(const char *str)
     }
 }
 
-/*
- * Inicialización del LCD HD44780 en modo 4 bits.
- */
+
 static void lcd_hw_init(void)
 {
     vTaskDelay(pdMS_TO_TICKS(100));
 
-    /*
-     * Secuencia de inicialización en nibbles.
-     */
+
+    // Secuencia de inicialización en nibbles.
+
     lcd_write_nibble(0x03, LCD_COMMAND);
     vTaskDelay(pdMS_TO_TICKS(10));
 
@@ -158,9 +131,8 @@ static void lcd_hw_init(void)
     lcd_write_nibble(0x02, LCD_COMMAND);
     vTaskDelay(pdMS_TO_TICKS(10));
 
-    /*
-     * Configuración final del LCD.
-     */
+    // Configuración final del LCD.
+
     lcd_send_byte(LCD_FUNCTIONSET | LCD_2LINE, LCD_COMMAND);
     vTaskDelay(pdMS_TO_TICKS(5));
 
@@ -173,9 +145,7 @@ static void lcd_hw_init(void)
     lcd_clear();
 }
 
-/*
- * Inicializa I2C y agrega el LCD como dispositivo.
- */
+
 static void i2c_lcd_init(void)
 {
     i2c_master_bus_config_t bus_config = {
@@ -206,17 +176,10 @@ static void i2c_lcd_init(void)
 
 void lcd_init_task(void)
 {
-    xTaskCreate(
-        task_lcd,
-        "task_lcd",
-        4096,
-        NULL,
-        2,
-        NULL
-    );
+    xTaskCreate(task_lcd, "task_lcd", 4096, NULL, 2, NULL);
 }
 
-static const char *estado_to_text(uint8_t estado)
+static const char *estado_to_text(uint8_t estado) 
 {
     if (estado == med_staterun_config)
     {
@@ -269,7 +232,7 @@ void task_lcd(void *param)
 
     uint8_t primera_vez = 1;
 
-    char linea1[17];
+    char linea1[17]; 
     char linea2[17];
 
     char linea1_anterior[17] = {0};
@@ -291,18 +254,11 @@ void task_lcd(void *param)
         if (xQueuePeek(config, &config_leida, pdMS_TO_TICKS(500)) == pdTRUE)
         {
             if (primera_vez ||
-                memcmp(&config_leida, &config_anterior, sizeof(config_t)) != 0)
+                memcmp(&config_leida, &config_anterior, sizeof(config_t)) != 0) // Si es la primera vez o si hay cambios en la configuración
             {
-                /*
-                 * Espero un poco para evitar actualizar mientras
-                 * están entrando varios cambios seguidos.
-                 */
+
                 vTaskDelay(pdMS_TO_TICKS(300));
 
-                /*
-                 * Leo de nuevo la última configuración.
-                 * Así muestro la última, no una intermedia.
-                 */
                 xQueuePeek(config, &config_leida, pdMS_TO_TICKS(100));
 
                 snprintf(
@@ -322,10 +278,8 @@ void task_lcd(void *param)
                     flanco_to_char(config_leida.flanco)
                 );
 
-                /*
-                 * Solo escribo la línea si cambió el texto.
-                 */
-                if (primera_vez || strcmp(linea1, linea1_anterior) != 0)
+
+                if (primera_vez || strcmp(linea1, linea1_anterior) != 0) // Si es la primera vez o si hay cambios en la línea 1
                 {
                     lcd_set_cursor(0, 0);
                     lcd_print_16(linea1);
@@ -352,9 +306,6 @@ void task_lcd(void *param)
             }
         }
 
-        /*
-         * No hace falta refrescar rápido.
-         */
         vTaskDelay(pdMS_TO_TICKS(500));
     }
 }
